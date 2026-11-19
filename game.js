@@ -584,26 +584,13 @@ function animar() {
 
     requestAnimationFrame(animar);
 
-
     // Calcular o tempo transcorrido
-
-    const delta = Math.min(
-
-        relogio.getDelta(),
-
-        0.05
-
-    );
-
+    const delta = Math.min(relogio.getDelta(), 0.05);
 
     // Atualizar animações do modelo
-
     if (mixer) {
-
         mixer.update(delta);
-
     }
-
 
     // ==================================================
     // MOVIMENTAR O PERSONAGEM
@@ -612,191 +599,111 @@ function animar() {
     if (modeloCarregado) {
 
         // Zerar a direção antes de calcular o movimento
-
         direcao.set(0, 0, 0);
 
-
-        // Movimentação horizontal
-
-        if (
-
-            teclas['w'] ||
-
-            teclas['arrowup']
-
-        ) {
-
-            direcao.z -= 1;
-
-        }
-
-
-        if (
-
-            teclas['s'] ||
-
-            teclas['arrowdown']
-
-        ) {
-
+        // Movimentação para frente e para trás (eixo Z local do personagem)
+        // Nota: Como sua câmera olha para (0, 0, 1), +1 é para frente e -1 é para trás
+        if (teclas['w'] || teclas['arrowup']) {
             direcao.z += 1;
-
         }
 
-
-        // Movimentação lateral
-
-        if (
-
-            teclas['a'] ||
-
-            teclas['arrowleft']
-
-        ) {
-
-            direcao.x -= 1;
-
+        if (teclas['s'] || teclas['arrowdown']) {
+            direcao.z -= 1;
         }
 
-
-        if (
-
-            teclas['d'] ||
-
-            teclas['arrowright']
-
-        ) {
-
+        // Movimentação lateral (strafe - eixo X local do personagem)
+        if (teclas['a'] || teclas['arrowleft']) {
             direcao.x += 1;
-
         }
 
+        if (teclas['d'] || teclas['arrowright']) {
+            direcao.x -= 1;
+        }
 
         // Verificar se existe movimento
-
         if (direcao.lengthSq() > 0) {
 
-            // Normalizar evita que a diagonal
-            // seja mais rápida que o movimento reto
-
+            // Normalizar evita que a diagonal seja mais rápida
             direcao.normalize();
 
+            // Gira o vetor de movimento para acompanhar a rotação atual da câmera/personagem
+            direcao.applyQuaternion(personagem.quaternion);
 
-            // Movimentar o personagem
-
-            personagem.position.x +=
-
-                direcao.x * velocidade * delta;
-
-
-            personagem.position.z +=
-
-                direcao.z * velocidade * delta;
-
-
-            // Girar o personagem na direção do movimento
-
-            personagem.rotation.y = Math.atan2(
-
-                direcao.x,
-
-                direcao.z
-
-            );
-
+            // Movimentar o personagem na direção para onde está olhando
+            personagem.position.x += direcao.x * velocidade * delta;
+            personagem.position.z += direcao.z * velocidade * delta;
         }
 
-
         // Impedir que o personagem saia do campo
-
         personagem.position.x = THREE.MathUtils.clamp(
-
             personagem.position.x,
-
             -limiteCampo,
-
             limiteCampo
-
         );
-
 
         personagem.position.z = THREE.MathUtils.clamp(
-
             personagem.position.z,
-
             -limiteCampo,
-
             limiteCampo
-
         );
 
-
         // ==================================================
-        // CÂMERA QUE ACOMPANHA O PERSONAGEM
+        // CÂMERA EM PRIMEIRA PESSOA
         // ==================================================
 
-        // Definir onde a câmera deve ficar
+        // Altura da câmera em relação ao personagem
+        const alturaCamera = 1.6;
 
+        // Pequeno deslocamento para posicionar a câmera no rosto
+        const deslocamentoFrontal = 0.1;
+
+        // Calcular a posição da câmera
+        const deslocamentoCamera = new THREE.Vector3(
+            0,
+            alturaCamera,
+            deslocamentoFrontal
+        );
+
+        // Girar o deslocamento conforme a direção do personagem
+        deslocamentoCamera.applyQuaternion(personagem.quaternion);
+
+        // Definir a posição desejada da câmera
         const posicaoDesejada = new THREE.Vector3(
-
-            personagem.position.x,
-
-            personagem.position.y + 6,
-
-            personagem.position.z + 9
-
+            personagem.position.x + deslocamentoCamera.x,
+            personagem.position.y + deslocamentoCamera.y,
+            personagem.position.z + deslocamentoCamera.z
         );
-
 
         // Movimento suave da câmera
-
         camera.position.lerp(
-
             posicaoDesejada,
-
-            1 - Math.exp(-4 * delta)
-
+            1 - Math.exp(-15 * delta)
         );
 
+        // Definir para onde a câmera deve olhar
+        const direcaoOlhar = new THREE.Vector3(0, 0, 1);
 
-        // Definir o ponto que a câmera observa
+        // Girar a direção conforme a orientação do personagem
+        direcaoOlhar.applyQuaternion(personagem.quaternion);
 
-        alvoCamera.set(
-
-            personagem.position.x,
-
-            personagem.position.y + 1,
-
-            personagem.position.z
-
+        // Definir o ponto observado pela câmera
+        alvoCamera.copy(posicaoDesejada).add(
+            direcaoOlhar.multiplyScalar(10)
         );
 
-
+        // Orientar a câmera
         camera.lookAt(alvoCamera);
-
     }
-
 
     // ==================================================
     // DESENHAR A CENA
     // ==================================================
 
-    renderer.render(
-
-        cena,
-
-        camera
-
-    );
-
+    renderer.render(cena, camera);
 }
 
-
 // Iniciar o jogo
-
 animar();
-
-
 
 // ==================================================
 // 16. AJUSTAR A TELA QUANDO A JANELA MUDA DE TAMANHO
@@ -805,25 +712,63 @@ animar();
 window.addEventListener('resize', function () {
 
     const largura = areaJogo.clientWidth;
-
     const altura = areaJogo.clientHeight;
 
-
     // Atualizar proporção da câmera
-
     camera.aspect = largura / altura;
-
     camera.updateProjectionMatrix();
 
-
     // Redimensionar o renderizador
-
-    renderer.setSize(
-
-        largura,
-
-        altura
-
-    );
-
+    renderer.setSize(largura, altura);
 });
+
+        // ==================================================
+        // DESENHAR A CENA
+        // ==================================================
+
+        renderer.render(
+
+            cena,
+
+            camera
+
+        );
+
+    
+
+
+    // Iniciar o jogo
+
+    animar();
+
+
+
+    // ==================================================
+    // 16. AJUSTAR A TELA QUANDO A JANELA MUDA DE TAMANHO
+    // ==================================================
+
+    window.addEventListener('resize', function () {
+
+        const largura = areaJogo.clientWidth;
+
+        const altura = areaJogo.clientHeight;
+
+
+        // Atualizar proporção da câmera
+
+        camera.aspect = largura / altura;
+
+        camera.updateProjectionMatrix();
+
+
+        // Redimensionar o renderizador
+
+        renderer.setSize(
+
+            largura,
+
+            altura
+
+        );
+
+    });
