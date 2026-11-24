@@ -22,6 +22,30 @@ const status = document.getElementById('status');
 
 
 // ==================================================
+// FÍSICA DO PERSONAGEM
+// ==================================================
+
+
+// Velocidade vertical do personagem
+let velocidadeVertical = 0;
+
+
+// Força da gravidade
+const gravidade = 20;
+
+
+// Força do pulo
+const forcaPulo = 8;
+
+
+// Altura do chão
+const alturaChao = 0;
+
+
+// Verificar se o personagem está no chão
+let noChao = true;
+
+// ==================================================
 // 3. CRIAR A CENA 3D
 // ==================================================
 
@@ -190,7 +214,7 @@ carregador.setDRACOLoader(dracoLoader);
 
 carregador.load(
 
-    './assets/cs_1.6_vip.glb',
+    './assets/sas__cs2_agent_model_blue.glb',
     
 
     function (gltf) {
