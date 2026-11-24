@@ -538,6 +538,27 @@ window.addEventListener('keydown', function (evento) {
 
     }
 
+    if (evento.code === 'Space') {
+
+
+        event.preventDefault();
+
+
+        // Só permite pular quando estiver no chão
+        if (noChao) {
+
+
+            velocidadeVertical = forcaPulo;
+
+
+            noChao = false;
+
+
+        }
+
+
+    }
+
 
     teclas[tecla] = true;
 
